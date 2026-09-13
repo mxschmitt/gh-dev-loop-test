@@ -5,6 +5,10 @@ end-to-end? This repo is the lab notebook. Everything here — scaffold,
 commits, pushes, toolchain installs — was done by Merlin (Muse agent) on
 2026-09-13, driven from a phone.
 
+**Verdict:** the dev loop works — writing code, testing, pushing is all
+smooth. The friction is GitHub auth (device codes, missing token scopes),
+and the sandbox hard-blocks anything needing containers. Receipts below.
+
 ## The machine
 
 - Linux x86_64, kernel 7.0.0-26-generic (Ubuntu 24.04)
@@ -74,8 +78,90 @@ Language smoke tests (`greet("merlin")` → `hello, merlin!`):
 | SQLite | 3.45.1 | ✅ |
 | Ruby / PHP / Java | — | ➖ not installed, not tried |
 
-## Learnings for the future
+## Receipts
 
+Actual terminal output behind the claims above.
+
+**Push rejected without the `workflow` scope** (experiment 4):
+
+```
+! [remote rejected] master -> master (refusing to allow an OAuth App to
+  create or update workflow `.github/workflows/ci.yml` without `workflow` scope)
+error: failed to push some refs to 'https://github.com/mxschmitt/gh-dev-loop-test.git'
+```
+
+**Token scopes after two device-code round-trips** (experiment 5) — still
+no `workflow`:
+
+```
+- Token scopes: 'gist', 'read:org', 'repo'
+```
+
+**Zero cgroup controllers delegated** (experiment 9) — can't be enabled
+from inside:
+
+```
+$ cat /sys/fs/cgroup/cgroup.controllers
+(empty)
+$ echo '+cpu +memory +pids' > /sys/fs/cgroup/cgroup.subtree_control
+write EXIT:1
+```
+
+**k3s: API server runs, kubelet can't, pod pends forever** (experiment 9):
+
+```
+$ k3s server
+level=fatal msg="Error: failed to find cpu cgroup (v2)"
+
+$ k3s kubectl version
+Client Version: v1.36.4+k3s1
+Server Version: v1.36.4+k3s1
+
+$ k3s kubectl get pod hello-world
+NAME          READY   STATUS    RESTARTS   AGE
+hello-world   0/1     Pending   0          8s
+```
+
+**The CI workflow that couldn't be pushed** (experiments 4 & 8):
+
+<details>
+<summary>ci.yml</summary>
+
+```yaml
+name: ci
+on: [push, pull_request]
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: cd python && python -m pytest test_greet.py
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "24" }
+      - run: cd node && node --test greet.test.js
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cd rust && cargo test
+  go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: "1.21" }
+      - run: cd go && go test ./...
+```
+
+</details>
+
+## Learnings for the future
 1. **The machine is the easy part.** Toolchains install in minutes without
    sudo; the dev loop (edit → test → commit → push) works fine.
 2. **Auth is the hard part.** `gh` ships logged out, the device flow is
