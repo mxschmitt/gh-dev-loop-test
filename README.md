@@ -59,7 +59,7 @@ Result: rustc/cargo 1.98.1, go 1.27.1, both fully working.
 | 6 | Language inventory (python/node/perl/c/c++/sqlite) | ✅ all run, see table below |
 | 7 | Install Rust + Go on demand | ✅ minutes, no sudo, tests pass |
 | 8 | Keep CI workflow local-only | ⚠️ workaround for #4 — it's untracked, not forgotten |
-| 9 | Install k3s, run hello-world pod | ❌ blocked — no cgroup delegation in this container (see learnings) |
+| 9 | Install k3s, run hello-world pod | ⚠️ half — k3s v1.36.4 API server runs, pod object created, but it stays Pending forever: zero cgroup controllers are delegated in this container, so the kubelet can't start and no nodes exist. Grok Bot's box delegates cgroups, so its kubelet ran (it only needed snapshotter/network tweaks). |
 
 Language smoke tests (`greet("merlin")` → `hello, merlin!`):
 
@@ -89,8 +89,12 @@ Language smoke tests (`greet("merlin")` → `hello, merlin!`):
 5. **What's missing for a nice Muse↔GitHub workflow:** a one-click GitHub
    connector (like Gmail/Notion/X have), pre-authed `gh`, and a way to
    watch PR/CI status without polling.
-6. **Know your sandbox.** This machine is a systemd-nspawn container with
-   zero cgroup controllers delegated (`/sys/fs/cgroup/cgroup.controllers`
-   is empty). k3s installs fine but can't start — `failed to find cpu
-   cgroup (v2)` — and no kubelet can run here. Anything needing cgroups
-   (k8s, docker) is out; plain binaries and language toolchains are in.
+6. **Know your sandbox — it's the real differentiator.** This container is
+   delegated zero cgroup controllers (`/sys/fs/cgroup/cgroup.controllers`
+   is empty; enabling them is denied). k3s installs and its API server
+   runs, but the kubelet can never start — no nodes, pods stay Pending,
+   and no docker/containerd either. Grok Bot ran the same task on a box
+   that delegates cgroups: its kubelet started, needing only
+   `snapshotter: native` and `flannel-backend: host-gw` tweaks. Same agent
+   capability, different sandbox privileges. The model isn't the moat;
+   the sandbox is.
