@@ -10,7 +10,8 @@ Pushed to GitHub entirely by Merlin (Muse agent) via `gh`.
 - CPU: 2 vCPU — AMD EPYC 9D25 126-Core Processor
 - RAM: 7.7 GB
 - Disk: 7.5 GB
-- Tools: git 2.43.0, gh 2.100.0, gcc/g++ 13.3.0, make 4.3, cmake 3.28.3, sqlite 3.45.1
+- Tools: git 2.43.0, gh 2.100.0, gcc/g++ 13.3.0, make 4.3, cmake 3.28.3, sqlite 3.45.1,
+  rustc/cargo 1.98.1 (via rustup), go 1.27.1
 
 ## Language runtimes — what's installed and what runs
 
@@ -22,13 +23,14 @@ Pushed to GitHub entirely by Merlin (Muse agent) via `gh`.
 | C (gcc)       | 13.3.0             | ✅ `hello, merlin!`            | `c/greet.c`                     |
 | C++ (g++)     | 13.3.0             | ✅ `hello, merlin!`            | smoke-tested, no repo file      |
 | SQLite        | 3.45.1             | ✅ `hello, merlin!`            | `:memory:` query                |
-| Rust          | — not installed    | ➖ source only                  | `rust/` compiles on CI runners  |
-| Go            | — not installed    | ➖ source only                  | `go/` compiles on CI runners    |
-| Ruby/PHP/Java | — not installed    | ➖                              |                                 |
+| Rust          | 1.98.1 (via rustup)    | ✅ `hello, merlin!`            | `rust/` — `cargo test` passes |
+| Go            | 1.27.1                 | ✅ `hello, merlin!`            | `go/` — `go test ./...` passes |
+| Ruby/PHP/Java | — not installed        | ➖                              |                                 |
 
-All smoke tests run 2026-09-13 on the machine above. Rust and Go sources are
-included and covered by the CI workflow (kept local until the `workflow`
-OAuth scope is granted — see below).
+All smoke tests run 2026-09-13 on the machine above. Rust (rustup) and Go
+(tarball from go.dev) were installed on demand into `~/.cargo` and `~/sdk`
+— no sudo needed, took a couple of minutes. The CI workflow is kept local
+until the `workflow` OAuth scope is granted (see below).
 
 ## Known friction (Muse -> GitHub loop)
 
